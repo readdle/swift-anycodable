@@ -12,14 +12,14 @@ public struct AnyCodable: Codable {
     private typealias AnyEncodableClosure = (Encodable, inout KeyedEncodingContainer<CodingKeys>) throws -> Void
     private typealias AnyDecodableClosure = (KeyedDecodingContainer<CodingKeys>) throws -> Decodable
     
-    private static let ArrayTypeName = "Swift.Array"
-    private static let DictionaryTypeName = "Swift.Dictionary"
-    
     private static var encodableClosures = [String: AnyEncodableClosure]()
     private static var decodableClosures = [String: AnyDecodableClosure]()
+
+    public static let ArrayTypeName = "Array"
+    public static let DictionaryTypeName = "Dictionary"
     
     public static func RegisterType<T: Codable>(_ type: T.Type) {
-        let typeName = String(reflecting: type)
+        let typeName = String(describing: type)
         encodableClosures[typeName] = { value, container in
             let castedType: T = value as! T
             try container.encode(castedType, forKey: .value)
@@ -34,7 +34,7 @@ public struct AnyCodable: Codable {
         case value
     }
     
-    private static func RegisterAllTypes() {
+    private static func RegisterBasicTypes() {
         guard encodableClosures[ArrayTypeName] == nil else {
             // Already registered
             return
@@ -62,7 +62,7 @@ public struct AnyCodable: Codable {
         }
         decodableClosures[ArrayTypeName] = { container in
             var unkeyedContainer = try container.nestedUnkeyedContainer(forKey: .value)
-            return try AnyCodable.decodeAnyArrayy(from: &unkeyedContainer) as Codable
+            return try AnyCodable.decodeAnyArray(from: &unkeyedContainer) as Codable
         }
         
         encodableClosures[DictionaryTypeName] = { value, container in
@@ -74,18 +74,25 @@ public struct AnyCodable: Codable {
             return try AnyCodable.decodeAnyDictionary(from: &unkeyedContainer) as Codable
         }
     }
-    
-    private let typeName: String
+
+    public let typeName: String
     public let value: Codable
+
+    public init?(value: Codable?) throws {
+        guard let value = value else {
+            return nil
+        }
+        try self.init(value: value)
+    }
     
     public init(value: Codable) throws {
-        AnyCodable.RegisterAllTypes()
+        AnyCodable.RegisterBasicTypes()
         self.value = value
         switch value {
         case is Array<Any>: self.typeName = AnyCodable.ArrayTypeName
         case is Dictionary<AnyHashable, Any>: self.typeName = AnyCodable.DictionaryTypeName
         default:
-            let typeName = String(reflecting: type(of: value))
+            let typeName = String(describing: type(of: value))
             guard AnyCodable.encodableClosures[typeName] != nil else {
                 throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [],
                                                                         debugDescription: "AnyCodable: Unsupported type: \(typeName)"))
@@ -95,10 +102,14 @@ public struct AnyCodable: Codable {
     }
     
     public init(from decoder: Decoder) throws {
-        AnyCodable.RegisterAllTypes()
+        AnyCodable.RegisterBasicTypes()
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.typeName = try container.decode(String.self, forKey: .typeName)
-        self.value = try AnyCodable.decodableClosures[typeName]!(container) as! Codable
+        let typeName = try container.decode(String.self, forKey: .typeName)
+        guard let closure = AnyCodable.decodableClosures[typeName] else {
+            fatalError("Not registered type: \(typeName)")
+        }
+        self.typeName = typeName
+        self.value = try closure(container) as! Codable
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -118,7 +129,7 @@ public struct AnyCodable: Codable {
         }
     }
     
-    private static func decodeAnyArrayy(from container: inout UnkeyedDecodingContainer) throws -> [Any] {
+    private static func decodeAnyArray(from container: inout UnkeyedDecodingContainer) throws -> [Any] {
         var array = [Any]()
         while !container.isAtEnd {
             let value = try container.decode(AnyCodable.self).value
