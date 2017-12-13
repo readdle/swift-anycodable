@@ -15,10 +15,17 @@ public struct AnyCodable: Codable {
     private static var encodableClosures = [String: AnyEncodableClosure]()
     private static var decodableClosures = [String: AnyDecodableClosure]()
 
+    private static let closuresLock = NSRecursiveLock()
+    private static var basicTypeRegistered = false
+
     public static let ArrayTypeName = "Array"
     public static let DictionaryTypeName = "Dictionary"
     
     public static func RegisterType<T: Codable>(_ type: T.Type) {
+        closuresLock.lock()
+        defer {
+            closuresLock.unlock()
+        }
         let typeName = String(describing: type)
         encodableClosures[typeName] = { value, container in
             let castedType: T = value as! T
@@ -35,8 +42,16 @@ public struct AnyCodable: Codable {
     }
     
     private static func RegisterBasicTypes() {
-        guard encodableClosures[ArrayTypeName] == nil else {
+        guard basicTypeRegistered == false else {
             // Already registered
+            return
+        }
+        closuresLock.lock()
+        defer {
+            closuresLock.unlock()
+        }
+        guard basicTypeRegistered == false else {
+            // Double-check lock
             return
         }
         
@@ -73,6 +88,8 @@ public struct AnyCodable: Codable {
             var unkeyedContainer = try container.nestedUnkeyedContainer(forKey: .value)
             return try AnyCodable.decodeAnyDictionary(from: &unkeyedContainer) as Codable
         }
+
+        basicTypeRegistered = true
     }
 
     public let typeName: String
