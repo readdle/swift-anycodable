@@ -19,6 +19,7 @@ public struct AnyCodable: Codable {
     private static var basicTypeRegistered = false
 
     public static let ArrayTypeName = "Array"
+    public static let SetTypeName = "Set"
     public static let DictionaryTypeName = "Dictionary"
     
     public static func RegisterType<T: Codable>(_ type: T.Type) {
@@ -79,6 +80,15 @@ public struct AnyCodable: Codable {
             var unkeyedContainer = try container.nestedUnkeyedContainer(forKey: .value)
             return try AnyCodable.decodeAnyArray(from: &unkeyedContainer) as Codable
         }
+
+        encodableClosures[SetTypeName] = { value, container in
+            var unkeyedContainer = container.nestedUnkeyedContainer(forKey: .value)
+            try AnyCodable.encodeAnySet(value as! Set<AnyHashable>, to: &unkeyedContainer)
+        }
+        decodableClosures[SetTypeName] = { container in
+            var unkeyedContainer = try container.nestedUnkeyedContainer(forKey: .value)
+            return try AnyCodable.decodeAnySet(from: &unkeyedContainer) as Codable
+        }
         
         encodableClosures[DictionaryTypeName] = { value, container in
             var unkeyedContainer = container.nestedUnkeyedContainer(forKey: .value)
@@ -108,6 +118,7 @@ public struct AnyCodable: Codable {
         switch value {
         case is Array<Any>: self.typeName = AnyCodable.ArrayTypeName
         case is Dictionary<AnyHashable, Any>: self.typeName = AnyCodable.DictionaryTypeName
+        case is Set<AnyHashable>: self.typeName = AnyCodable.SetTypeName
         default:
             let typeName = String(describing: type(of: value))
             guard AnyCodable.encodableClosures[typeName] != nil else {
@@ -153,6 +164,32 @@ public struct AnyCodable: Codable {
             array.append(value)
         }
         return array
+    }
+
+    private static func encodeAnySet(_ set: Set<AnyHashable>,  to container: inout UnkeyedEncodingContainer) throws {
+        for value in set {
+            guard let codableValue = value as? Codable else {
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [],
+                        debugDescription: "encodeAnySet: Unsupported type \(type(of: value))"))
+            }
+
+            try container.encode(AnyCodable(value: codableValue))
+        }
+    }
+
+    private static func decodeAnySet(from container: inout UnkeyedDecodingContainer) throws -> Set<AnyHashable> {
+        var set = Set<AnyHashable>()
+        while !container.isAtEnd {
+            let value = try container.decode(AnyCodable.self).value
+            if let anyHashableValue = value as? AnyHashable {
+                set.insert(anyHashableValue)
+            }
+            else {
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [],
+                        debugDescription: "decodeAnySet: \(type(of: value)) is not Hashable"))
+            }
+        }
+        return set
     }
     
     private static func encodeAnyDictionary(_ dict: [AnyHashable: Any],  to container: inout UnkeyedEncodingContainer) throws {
