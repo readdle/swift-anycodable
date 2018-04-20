@@ -105,8 +105,8 @@ public struct AnyCodable: Codable {
     public let typeName: String
     public let value: Codable
 
-    public init?(value: Codable?) throws {
-        guard let value = value else {
+    public init?(optionalValue: Codable?) throws {
+        guard let value = optionalValue else {
             return nil
         }
         try self.init(value: value)
