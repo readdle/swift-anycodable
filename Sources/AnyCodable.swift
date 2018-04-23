@@ -105,6 +105,11 @@ public struct AnyCodable: Codable {
     public let typeName: String
     public let value: Codable
 
+    @available(*, deprecated, renamed: "init(optionalValue:)", message: "Use explicit init(optionalValue:)")
+    public init?(value: Codable?) throws {
+        try self.init(optionalValue: value)
+    }
+
     public init?(optionalValue: Codable?) throws {
         guard let value = optionalValue else {
             return nil
