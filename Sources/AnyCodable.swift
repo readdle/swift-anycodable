@@ -139,7 +139,8 @@ public struct AnyCodable: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let typeName = try container.decode(String.self, forKey: .typeName)
         guard let closure = AnyCodable.decodableClosures[typeName] else {
-            fatalError("Not registered type: \(typeName)")
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [],
+                                                                    debugDescription: "Not registered type: \(typeName)"))
         }
         self.typeName = typeName
         self.value = try closure(container) as! Codable
