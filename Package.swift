@@ -12,6 +12,8 @@ let package = Package(
     ],
     targets: [
         .target(name: "AnyCodable", path: "Sources"),
+        .testTarget(name: "AnyCodableTests", dependencies: ["AnyCodable"], path: "Tests"),
     ],
+
     swiftLanguageVersions: [4]
 )
