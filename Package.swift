@@ -15,5 +15,5 @@ let package = Package(
         .testTarget(name: "AnyCodableTests", dependencies: ["AnyCodable"], path: "Tests"),
     ],
 
-    swiftLanguageVersions: [4]
+    swiftLanguageVersions: [5, 4]
 )
