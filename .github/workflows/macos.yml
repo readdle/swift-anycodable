@@ -1,4 +1,4 @@
-name: CI
+name: macOS CI
 
 on: [push]
 
@@ -9,5 +9,5 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
-    - name: Run a one-line script
+    - name: test AnyCodable package
       run: swift test
