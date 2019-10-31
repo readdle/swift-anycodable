@@ -1,0 +1,21 @@
+// swift-interface-format-version: 1.0
+// swift-tools-version: Apple Swift version 5.0.1 (swiftlang-1001.0.82.4 clang-1001.0.46.5)
+// swift-module-flags: -target x86_64-apple-macosx10.10 -enable-objc-interop -swift-version 5 -Onone -module-name AnyCodable
+import Foundation
+public struct AnyCodable : Codable {
+  @_hasInitialValue public static var ArrayTypeName: Swift.String
+  @_hasInitialValue public static var SetTypeName: Swift.String
+  @_hasInitialValue public static var DictionaryTypeName: Swift.String
+  public static func RegisterType<T>(_ type: T.Type) where T : Decodable, T : Encodable
+  public let typeName: Swift.String
+  public let value: Any
+  @available(*, deprecated, renamed: "init(optionalValue:)", message: "Use explicit init(optionalValue:)")
+  public init?(value: Codable?) throws
+  public init?(optionalValue: Codable?) throws
+  public init(value: Codable) throws
+  public init(value: Swift.Array<Any>) throws
+  public init(value: Swift.Dictionary<Swift.AnyHashable, Any>) throws
+  public init(value: Swift.Set<Swift.AnyHashable>) throws
+  public init(from decoder: Decoder) throws
+  public func encode(to encoder: Encoder) throws
+}

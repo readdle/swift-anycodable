@@ -1,0 +1,17 @@
+name: Public interface and LinuxMain checks
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: macOS-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: Generate new public interface
+      run: swift build -Xswiftc -emit-parseable-module-interface-path -Xswiftc AnyCodable.swiftinterface
+    - name: Generate LinuxMain
+      run: brew install sourcery; sourcery
+    - name: Check unstaged changes in git repo
+      run: git diff --exit-code
