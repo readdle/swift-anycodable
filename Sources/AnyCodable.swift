@@ -5,6 +5,7 @@
 //  Copyright © 2017 Readdle. All rights reserved.
 //
 
+import CoreFoundation
 import Foundation
 
 public struct AnyCodable: Codable {
@@ -21,6 +22,7 @@ public struct AnyCodable: Codable {
     public static let ArrayTypeName = "Array"
     public static let SetTypeName = "Set"
     public static let DictionaryTypeName = "Dictionary"
+    public static let NSNumberTypeName = "NSNumber"
     
     public static func RegisterType<T: Codable>(_ type: T.Type) {
         closuresLock.lock()
@@ -102,6 +104,45 @@ public struct AnyCodable: Codable {
             return try AnyCodable.decodeAnyDictionary(from: &unkeyedContainer)
         }
         
+        encodableClosures[NSNumberTypeName] = { value, container in
+            let castedType = value as! NSNumber
+            if CFGetTypeID(castedType) == CFBooleanGetTypeID() {
+                try container.encode(castedType.boolValue, forKey: .value)
+            }
+            else {
+                switch castedType.objCType.pointee {
+                case 0x42:
+                    try container.encode(castedType.boolValue, forKey: .value)
+                case 0x63: fallthrough
+                case 0x43: fallthrough
+                case 0x73: fallthrough
+                case 0x53: fallthrough
+                case 0x69: fallthrough
+                case 0x49: fallthrough
+                case 0x6C: fallthrough
+                case 0x4C: fallthrough
+                case 0x71: fallthrough
+                case 0x51:
+                    try container.encode(castedType.intValue, forKey: .value)
+                case 0x66: fallthrough
+                case 0x64:
+                    try container.encode(castedType.doubleValue, forKey: .value)
+                default:
+                    try container.encode(castedType.intValue, forKey: .value)
+                }
+            }
+        }
+        decodableClosures[NSNumberTypeName] = { container in
+            if let boolValue = try? container.decode(Bool.self, forKey: .value) {
+                return NSNumber(value: boolValue)
+            }
+            if let intValue = try? container.decode(Int.self, forKey: .value) {
+                return NSNumber(value: intValue)
+            }
+            let doubleValue = try container.decode(Int.self, forKey: .value)
+            return NSNumber(value: doubleValue)
+        }
+        
         basicTypeRegistered = true
     }
     
@@ -155,6 +196,12 @@ public struct AnyCodable: Codable {
         self.typeName = AnyCodable.SetTypeName
     }
     
+    public init(value: NSNumber) throws {
+        AnyCodable.RegisterBasicTypes()
+        self.value = value
+        self.typeName = AnyCodable.NSNumberTypeName
+    }
+    
     public init(from decoder: Decoder) throws {
         AnyCodable.RegisterBasicTypes()
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -189,6 +236,9 @@ public struct AnyCodable: Codable {
             else if let codableValue = value as? Dictionary<AnyHashable, Any> {
                 try container.encode(AnyCodable(value: codableValue))
             }
+            else if let codableValue = value as? NSNumber {
+                try container.encode(AnyCodable(value: codableValue))
+            }
             else if let codableValue = value as? Codable {
                 try container.encode(AnyCodable(value: codableValue))
             }
@@ -217,6 +267,9 @@ public struct AnyCodable: Codable {
                 try container.encode(AnyCodable(value: codableValue))
             }
             else if let codableValue = value as? Dictionary<AnyHashable, Any> {
+                try container.encode(AnyCodable(value: codableValue))
+            }
+            else if let codableValue = value as? NSNumber {
                 try container.encode(AnyCodable(value: codableValue))
             }
             else if let codableValue = value as? Codable {
@@ -260,6 +313,9 @@ public struct AnyCodable: Codable {
                 try container.encode(AnyCodable(value: codableValue))
             }
             else if let codableValue = value as? Dictionary<AnyHashable, Any> {
+                try container.encode(AnyCodable(value: codableValue))
+            }
+            else if let codableValue = value as? NSNumber {
                 try container.encode(AnyCodable(value: codableValue))
             }
             else if let codableValue = value as? Codable {
