@@ -113,5 +113,29 @@ class AnyCodableTests: XCTestCase {
             XCTFail()
         }
     }
+
+    func testNSNumberBool() throws {
+        let value = NSNumber(value: true)
+        let anyCodable = try AnyCodable(value: value)
+        let data = try JSONEncoder().encode(anyCodable)
+        let object = try JSONDecoder().decode(AnyCodable.self, from: data)
+        XCTAssertEqual(value, object.value as? NSNumber)
+    }
+
+    func testNSNumberInt() throws {
+        let value = NSNumber(value: 1)
+        let anyCodable = try AnyCodable(value: value)
+        let data = try JSONEncoder().encode(anyCodable)
+        let object = try JSONDecoder().decode(AnyCodable.self, from: data)
+        XCTAssertEqual(value, object.value as? NSNumber)
+    }
+
+    func testNSNumberDouble() throws {
+        let value = NSNumber(value: 1.0)
+        let anyCodable = try AnyCodable(value: value)
+        let data = try JSONEncoder().encode(anyCodable)
+        let object = try JSONDecoder().decode(AnyCodable.self, from: data)
+        XCTAssertEqual(value, object.value as? NSNumber)
+    }
     
 }
