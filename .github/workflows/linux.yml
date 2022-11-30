@@ -1,0 +1,12 @@
+name: Linux CI
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    container: swift:latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Test
+        run: swift test
